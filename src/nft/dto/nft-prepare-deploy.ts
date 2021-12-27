@@ -3,4 +3,5 @@ export class NftPrepareDeployDto {
   description: string;
   name: string;
   account: string;
+  tokenId: number;
 }

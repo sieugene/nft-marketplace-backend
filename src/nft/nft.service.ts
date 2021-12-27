@@ -29,6 +29,15 @@ export class NftService {
     amount: number;
     uri: string;
   }> {
+    if (
+      !nft.account ||
+      !nft.amount ||
+      !nft.description ||
+      !nft.name ||
+      !nft.tokenId
+    ) {
+      throw new HttpException(`Checkout args!`, HttpStatus.BAD_REQUEST);
+    }
     const ipfsResult = await this.ipfs(image);
 
     const fileContent = JSON.stringify({
@@ -37,11 +46,8 @@ export class NftService {
       name: nft.name,
     });
 
-    const amount = 1;
-    const tokenId = 1;
-
     const directory = `${join(__dirname, "..", "..", "public")}/${nft.account}`;
-    const filename = `000000000000000000000000000000000000000000000000000000000000000${tokenId}.json`;
+    const filename = `000000000000000000000000000000000000000000000000000000000000000${nft.tokenId}.json`;
     const filepath = `${directory}/${filename}`;
 
     return new Promise((resolve, reject) => {
@@ -57,8 +63,8 @@ export class NftService {
           }
           //"https://hostname/{id}.json"
           resolve({
-            tokenId,
-            amount,
+            tokenId: nft.tokenId,
+            amount: nft.amount,
             uri: `/${nft.account}/{id}.json`,
           });
         });
