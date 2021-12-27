@@ -28,6 +28,11 @@ export class NftService {
     tokenId: number;
     amount: number;
     uri: string;
+    nft: {
+      description: string;
+      image: string;
+      name: string;
+    };
   }> {
     if (
       !nft.account ||
@@ -42,7 +47,7 @@ export class NftService {
 
     const fileContent = JSON.stringify({
       description: nft.description,
-      image: ipfsResult.hash,
+      image: `https://ipfs.infura.io/ipfs/${ipfsResult.hash}`,
       name: nft.name,
     });
 
@@ -62,10 +67,12 @@ export class NftService {
             reject(err);
           }
           //"https://hostname/{id}.json"
+
           resolve({
             tokenId: nft.tokenId,
             amount: nft.amount,
-            uri: `/${nft.account}/{id}.json`,
+            uri: `${process.env.REST_URI}/${nft.account}/{id}.json`,
+            nft: JSON.parse(fileContent),
           });
         });
       });
