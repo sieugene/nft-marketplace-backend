@@ -1,3 +1,50 @@
+# Metadata prepare
+In this repository you will find the code that allows you to prepare the data for deploy the ERC1155 contract and the preview on opensea, instructions on how to do this are given below.
+## Steps
+Make a POST request to this endpoint `https://nft-marketpl.herokuapp.com/nft/upload`.   
+In the **body** pass `form-data`:    
+**file** - image file.  
+**nft** - as json (*example below*).  
+```
+{
+  "quantity": "1",
+  "description": "Description",
+  "name": "Some name",
+  "account": "you account",
+  "tokenId": "1"
+}
+```
+The **response** would be: 
+```
+"tokenId": "1",
+"amount": "1",
+"uri": "https://ipfs.infura.io/ipfs/hash",
+"openseaJson": {
+        "description": "Description ",
+        "image": "https://ipfs.infura.io/ipfs/hash",
+        "name": "Some name"
+ }
+```
+We will need this data for the contract deploy (*other than openseaJson*).
+### Explanation of data preparation
+Your sent file will be saved in ipfs, also a json will be created which is also saved in ipfs, the json file plays a key role here, the address of this file is returned to us from the preparation request - **uri**. As well as the **tokenId** and **amount**, these data will be needed to deploy the contract.
+### Deploy step
+- Go to [remix](https://remix.ethereum.org/ "remix")
+- Copy the [contents](https://github.com/sieugene/nft-marketplace-solidity/blob/main/smart-contracts/NFTContract.sol "contents"), remove the **node_modules** imports and uncomment the **Remix imports**.
+- COMPILER tab, select 0.8.0 version
+- Deploy & Run transactions tab in menu
+- Injected Web 3
+- Connect rinkeby network with eth balance
+- Pass tokenId, amount, uri
+- Deploy
+
+After a while your nft will appear in your profile, you can go to [opensea testnet](https://testnets.opensea.io/account "opensea testnet")
+
+## Summary
+If you have done these steps, you have successfully created your nft in the rinkeby network and published it to opensea. You can also do this in mainnet, instead select a different network. The deployment step on the network can be simplified as part of the frontend, with the takeout from the contract method deploy.
+You can also do it locally, run nest in development mode, and use truffle to deploy smart contracts. 
+
+
 <p align="center">
   <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo_text.svg" width="320" alt="Nest Logo" /></a>
 </p>
