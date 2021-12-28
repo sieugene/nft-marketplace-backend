@@ -1,4 +1,3 @@
-import { HttpService } from "@nestjs/axios";
 import { HttpException, HttpStatus, Injectable } from "@nestjs/common";
 import * as fs from "fs";
 import { join } from "path";
@@ -7,12 +6,11 @@ import ipfsUpload from "./lib/ipfsUpload";
 
 @Injectable()
 export class NftService {
-  constructor(private httpService: HttpService) {}
-
-  async ipfs(image: Express.Multer.File) {
+  // upload on ipfs
+  async ipfs(path: string) {
     try {
-      const ipfsResult = await ipfsUpload(image);
-      return ipfsResult[0];
+      const ipfsResult = await ipfsUpload(path);
+      return `https://ipfs.infura.io/ipfs/${ipfsResult[0]?.hash}`;
     } catch (error) {
       throw new HttpException(
         `Error with upload on ipfs`,
@@ -21,40 +19,12 @@ export class NftService {
     }
   }
 
-  async prepareDeploy(
-    nft: NftPrepareDeployDto,
-    image: Express.Multer.File
-  ): Promise<{
-    tokenId: number;
-    amount: number;
-    uri: string;
-    nft: {
-      description: string;
-      image: string;
-      name: string;
-    };
-  }> {
-    if (
-      !nft.account ||
-      !nft.amount ||
-      !nft.description ||
-      !nft.name ||
-      !nft.tokenId
-    ) {
-      throw new HttpException(`Checkout args!`, HttpStatus.BAD_REQUEST);
-    }
-    const ipfsResult = await this.ipfs(image);
-
-    const fileContent = JSON.stringify({
-      description: nft.description,
-      image: `https://ipfs.infura.io/ipfs/${ipfsResult.hash}`,
-      name: nft.name,
-    });
-
-    const directory = `${join(__dirname, "..", "..", "public")}/${nft.account}`;
-    const filename = `000000000000000000000000000000000000000000000000000000000000000${nft.tokenId}.json`;
-    const filepath = `${directory}/${filename}`;
-
+  // create json metada for opensea
+  metadata(
+    directory: string,
+    filepath: string,
+    fileContent: string
+  ): Promise<string> {
     return new Promise((resolve, reject) => {
       // creater folder
       fs.mkdir(directory, { recursive: true }, (err) => {
@@ -66,16 +36,47 @@ export class NftService {
           if (err) {
             reject(err);
           }
-          //"https://hostname/{id}.json"
-
-          resolve({
-            tokenId: nft.tokenId,
-            amount: nft.amount,
-            uri: `${process.env.REST_URI}/${nft.account}/{id}.json`,
-            nft: JSON.parse(fileContent),
-          });
+          resolve(filepath);
         });
       });
     });
+  }
+  // prepare for contract
+  async prepareDeploy(nft: NftPrepareDeployDto, image: Express.Multer.File) {
+    if (
+      !nft.account ||
+      !nft.amount ||
+      !nft.description ||
+      !nft.name ||
+      !nft.tokenId
+    ) {
+      throw new HttpException(`Checkout args!`, HttpStatus.BAD_REQUEST);
+    }
+    const ipfsResult = await this.ipfs(image.path);
+
+    const openseaJson = {
+      description: nft.description,
+      image: ipfsResult,
+      name: nft.name,
+    };
+
+    const directory = `${join(__dirname, "..", "..", "public")}/${nft.account}`;
+    const filename = `${nft.tokenId}.json`;
+    const filepath = `${directory}/${filename}`;
+
+    const createdFile = await this.metadata(
+      directory,
+      filepath,
+      JSON.stringify(openseaJson)
+    );
+    const uploadedJson = await this.ipfs(createdFile);
+
+    const nff = {
+      tokenId: nft.tokenId,
+      amount: nft.amount,
+      uri: uploadedJson,
+      openseaJson,
+    };
+    return nff;
   }
 }
